@@ -42,11 +42,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 .res{font-size:12px;font-weight:700;padding:5px 8px;border-radius:6px;text-align:center;margin-bottom:8px}
 .res.made{background:rgba(46,204,113,.15);color:var(--green)}
-.res.miss{background:rgba(231,76,60,.15);color:var(--red)}
+.res.miss,.res.foul{background:rgba(231,76,60,.15);color:var(--red)}
+.res.neutral{background:rgba(242,183,5,.15);color:var(--accent)}
 .who{font-size:15px;font-weight:700;margin-bottom:10px;text-align:center;word-break:break-word}
-.tiles{display:grid;grid-template-columns:1fr;gap:6px}
-.tile{display:flex;align-items:baseline;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:8px 12px}
-.tile b{font-family:var(--font-display);font-size:24px}
+.tiles{display:grid;grid-template-columns:1fr;gap:5px}
+.tile{display:flex;align-items:baseline;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:6px 12px}
+.tile b{font-family:var(--font-display);font-size:22px}
 .tile span{font-size:10px;color:var(--text3);letter-spacing:1px}
 
 #logTitle{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:4px 16px;max-width:1040px;margin:0 auto}
@@ -106,8 +107,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     </div>
 
     <div class="panel" id="cardPanel">
-      <div class="ptitle">Ultimo tiro</div>
-      <div id="card"><div class="empty">In attesa del primo tiro</div></div>
+      <div class="ptitle">Ultima azione</div>
+      <div id="card"><div class="empty">In attesa della prima azione</div></div>
     </div>
   </div>
 
@@ -178,32 +179,50 @@ if(!liveId){
     }).join('');
   }
 
-  // Ultimo tiro: un solo pallino sul campo + card a destra, sostituiti ad ogni nuovo tiro
-  function renderShot(s){
+  function actionLabel(a){
+    switch(a.kind){
+      case 'shot':       return {cls:a.made?'made':'miss', txt:(a.made?'✅ Segnato':'❌ Sbagliato')+' · '+a.pts+'PT'};
+      case 'ft':         return {cls:a.made?'made':'miss', txt:a.made?'🎯 Tiro libero segnato':'⭕ Tiro libero sbagliato'};
+      case 'reb_off':    return {cls:'neutral', txt:'⬆️ Rimbalzo offensivo'};
+      case 'reb_def':    return {cls:'neutral', txt:'⬇️ Rimbalzo difensivo'};
+      case 'foul':       return {cls:'foul',    txt:'✋ Fallo fatto'};
+      case 'foul_drawn': return {cls:'neutral', txt:'🙋 Fallo subito'};
+    }
+    return {cls:'neutral', txt:''};
+  }
+
+  // Ultima azione: card a destra; il campo mostra il pallino solo se l'azione è un tiro con posizione
+  function renderAction(a){
     const g = document.getElementById('dots');
     const card = document.getElementById('card');
-    if(!s){
-      g.innerHTML = ''; curShooter = null; renderLineup();
-      card.innerHTML = '<div class="empty">In attesa del primo tiro</div>';
+    g.innerHTML = '';
+    if(!a){
+      curShooter = null; renderLineup();
+      card.innerHTML = '<div class="empty">In attesa della prima azione</div>';
       return;
     }
-    const col = s.made ? '#2ecc71' : '#e74c3c';
-    const x = Number(s.sx), y = Number(s.sy);
-    g.innerHTML =
-      '<circle cx="'+x+'" cy="'+y+'" r="11" fill="'+col+'" stroke="white" stroke-width="2"/>'+
-      '<circle cx="'+x+'" cy="'+y+'" r="11" fill="none" stroke="'+col+'" stroke-width="3">'+
-        '<animate attributeName="r" from="11" to="38" dur="1.2s" repeatCount="3"/>'+
-        '<animate attributeName="opacity" from="0.9" to="0" dur="1.2s" repeatCount="3"/>'+
-      '</circle>';
-    const p = s.player || {};
+    if(a.kind === 'shot' && a.sx != null && a.sy != null){
+      const col = a.made ? '#2ecc71' : '#e74c3c';
+      const x = Number(a.sx), y = Number(a.sy);
+      g.innerHTML =
+        '<circle cx="'+x+'" cy="'+y+'" r="11" fill="'+col+'" stroke="white" stroke-width="2"/>'+
+        '<circle cx="'+x+'" cy="'+y+'" r="11" fill="none" stroke="'+col+'" stroke-width="3">'+
+          '<animate attributeName="r" from="11" to="38" dur="1.2s" repeatCount="3"/>'+
+          '<animate attributeName="opacity" from="0.9" to="0" dur="1.2s" repeatCount="3"/>'+
+        '</circle>';
+    }
+    const p = a.player || {};
+    const lb = actionLabel(a);
     curShooter = p; renderLineup();
     card.innerHTML =
-      '<div class="res '+(s.made?'made':'miss')+'">'+(s.made?'✅ Segnato':'❌ Sbagliato')+' · '+esc(s.pts)+'PT</div>'+
+      '<div class="res '+lb.cls+'">'+esc(lb.txt)+'</div>'+
       '<div class="who">#'+esc(p.num)+' '+esc(p.name)+'</div>'+
       '<div class="tiles">'+
-        '<div class="tile"><b>'+esc(p.pts)+'</b><span>PUNTI</span></div>'+
-        '<div class="tile"><b>'+esc(p.min)+'\'</b><span>MINUTI</span></div>'+
-        '<div class="tile"><b>'+esc(p.reb)+'</b><span>RIMBALZI</span></div>'+
+        '<div class="tile"><b>'+esc(p.pts||0)+'</b><span>PUNTI</span></div>'+
+        '<div class="tile"><b>'+esc(p.min||0)+'\'</b><span>MINUTI</span></div>'+
+        '<div class="tile"><b>'+esc(p.reb||0)+'</b><span>RIMBALZI</span></div>'+
+        '<div class="tile"><b>'+esc(p.foul||0)+'</b><span>FALLI FATTI</span></div>'+
+        '<div class="tile"><b>'+esc(p.foulDrawn||0)+'</b><span>FALLI SUBITI</span></div>'+
       '</div>';
   }
 
@@ -227,12 +246,15 @@ if(!liveId){
     renderLineup();
   });
 
-  db.ref('live/'+liveId+'/lastShot').on('value', snap => {
+  db.ref('live/'+liveId+'/lastAction').on('value', snap => {
     if(expired()) return;
-    renderShot(snap.val());
+    renderAction(snap.val());
   });
 
-  db.ref('live/'+liveId+'/log').limitToLast(300).on('child_added', snap => {
+  // Log: solo le ultime 15 azioni (l'app cancella le piu' vecchie, qui si toglie la riga)
+  const logRows = {};
+  const logRef = db.ref('live/'+liveId+'/log').limitToLast(15);
+  logRef.on('child_added', snap => {
     const e = snap.val();
     if(expired()) return;
     const row = document.createElement('div');
@@ -242,6 +264,11 @@ if(!liveId){
       '<div class="txt">'+(e.player?'<div class="player">'+esc(e.player)+'</div>':'')+esc(e.icon||'')+' '+esc(e.text||'')+'</div>';
     const log = document.getElementById('log');
     log.insertBefore(row, log.firstChild);
+    logRows[snap.key] = row;
+  });
+  logRef.on('child_removed', snap => {
+    const row = logRows[snap.key];
+    if(row){ row.remove(); delete logRows[snap.key]; }
   });
 
   setInterval(() => {
