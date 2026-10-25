@@ -60,6 +60,21 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .entry .txt{flex:1}
 .entry .player{font-weight:700;font-size:11px;color:var(--text2)}
 
+/* Elenco giocatori e scheda dettaglio */
+#rosterBtn{width:100%;margin-top:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:12px;cursor:pointer}
+.pl.click{cursor:pointer}
+#sheet{position:fixed;inset:0;z-index:15;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#sheet.open{display:flex}
+#sheetBar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--border)}
+#sheetBack{background:none;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+#sheetTitle{font-size:14px;font-weight:700}
+#sheetBody{flex:1;overflow-y:auto;padding:12px;max-width:520px;width:100%;margin:0 auto}
+.rrow{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;font-size:14px}
+.rrow .n{color:var(--accent);font-weight:700;margin-right:6px}
+.rrow .pp{font-family:var(--font-display);font-size:18px}
+.rrow .pp small{font-family:Arial,sans-serif;font-size:10px;color:var(--text3);margin-left:3px}
+#sheetBody .who{margin-top:4px}
+
 #overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;z-index:20}
 #overlay.hidden{display:none}
 #overlay h2{margin:0 0 8px}
@@ -97,6 +112,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div class="panel" id="lineupPanel">
       <div class="ptitle">In campo</div>
       <div id="lineup"><div class="empty">—</div></div>
+      <button id="rosterBtn" type="button">👥 Tutti i giocatori</button>
     </div>
 
     <div id="courtCol">
@@ -117,6 +133,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
   <div id="logTitle">Log partita</div>
   <div id="log"></div>
+</div>
+
+
+<div id="sheet">
+  <div id="sheetBar"><button id="sheetBack" type="button">← Indietro</button><div id="sheetTitle"></div></div>
+  <div id="sheetBody"></div>
 </div>
 
 <script src="firebase-app-compat.js"></script>
@@ -156,6 +178,7 @@ if(!liveId){
 } else {
   let expiresAt = null, localSeconds = null, localRunning = false, localTick = null;
   let curOnCourt = [], curShooter = null;
+  let curRoster = [], sheetMode = null, sheetPlayer = null, sheetFromList = false;
 
   function expired(){ return expiresAt && Date.now() > expiresAt; }
 
@@ -178,7 +201,7 @@ if(!liveId){
     if(!curOnCourt.length){ box.innerHTML = '<div class="empty">—</div>'; return; }
     box.innerHTML = curOnCourt.map(p => {
       const hl = curShooter && String(p.num)===String(curShooter.num) && p.name===curShooter.name;
-      return '<div class="pl'+(hl?' hl':'')+'"><span class="n">#'+esc(p.num)+'</span> '+esc(p.name)+'</div>';
+      return '<div class="pl click'+(hl?' hl':'')+'" data-num="'+esc(p.num)+'" data-name="'+esc(p.name)+'"><span class="n">#'+esc(p.num)+'</span> '+esc(p.name)+'</div>';
     }).join('');
   }
 
@@ -241,6 +264,60 @@ if(!liveId){
       '</div>';
   }
 
+  // ── Elenco giocatori + scheda dettaglio (stesse 4 statistiche della card live) ──
+  function findPlayer(num, name){
+    return curRoster.find(r => String(r.num)===String(num) && r.name===name) || null;
+  }
+  function renderSheet(){
+    const sheet = document.getElementById('sheet');
+    const body = document.getElementById('sheetBody');
+    const title = document.getElementById('sheetTitle');
+    if(!sheetMode){ sheet.classList.remove('open'); return; }
+    sheet.classList.add('open');
+    if(sheetMode==='list'){
+      title.textContent = 'Tutti i giocatori';
+      if(!curRoster.length){ body.innerHTML = '<div class="empty">Nessun giocatore</div>'; return; }
+      const rows = curRoster.slice().sort((a,b)=>(parseInt(a.num,10)||0)-(parseInt(b.num,10)||0));
+      body.innerHTML = rows.map(r =>
+        '<div class="rrow" data-num="'+esc(r.num)+'" data-name="'+esc(r.name)+'">'+
+          '<span><span class="n">#'+esc(r.num)+'</span>'+esc(r.name)+'</span>'+
+          '<span class="pp">'+esc(r.pts||0)+'<small>PT</small></span>'+
+        '</div>').join('');
+    } else {
+      const p = findPlayer(sheetPlayer.num, sheetPlayer.name);
+      title.textContent = 'Giocatore';
+      if(!p){ body.innerHTML = '<div class="empty">Dati non disponibili</div>'; return; }
+      hlTile = null;
+      body.innerHTML =
+        '<div class="who">#'+esc(p.num)+' '+esc(p.name)+'</div>'+
+        '<div class="tiles">'+
+          tile('pts',  p.pts||0,        'PUNTI')+
+          tile('min',  (p.min||0)+'\'', 'MINUTI')+
+          tile('foul', p.foul||0,       'FALLI FATTI')+
+          tile('foulDrawn', p.foulDrawn||0, 'FALLI SUBITI')+
+        '</div>';
+    }
+  }
+  function openList(){ sheetMode='list'; sheetPlayer=null; sheetFromList=false; renderSheet(); }
+  function openPlayer(num, name, fromList){
+    sheetMode='player'; sheetPlayer={num, name}; sheetFromList=!!fromList; renderSheet();
+  }
+  function sheetBack(){
+    if(sheetMode==='player' && sheetFromList){ openList(); }
+    else { sheetMode=null; sheetPlayer=null; renderSheet(); }
+  }
+  document.getElementById('rosterBtn').addEventListener('click', openList);
+  document.getElementById('sheetBack').addEventListener('click', sheetBack);
+  document.getElementById('lineup').addEventListener('click', e => {
+    const el = e.target.closest('.pl'); if(!el) return;
+    openPlayer(el.dataset.num, el.dataset.name, false);
+  });
+  document.getElementById('sheetBody').addEventListener('click', e => {
+    const el = e.target.closest('.rrow'); if(!el) return;
+    openPlayer(el.dataset.num, el.dataset.name, true);
+  });
+
+
   db.ref('live/'+liveId+'/meta').on('value', snap => {
     const meta = snap.val();
     if(!meta){ showOverlay('⚠️ Diretta non trovata', 'Controlla il link ricevuto.'); return; }
@@ -259,6 +336,8 @@ if(!liveId){
     renderClock(); startLocalClock();
     curOnCourt = Array.isArray(s.onCourt) ? s.onCourt : Object.values(s.onCourt || {});
     renderLineup();
+    curRoster = Array.isArray(s.roster) ? s.roster : Object.values(s.roster || {});
+    if(sheetMode) renderSheet();
   });
 
   db.ref('live/'+liveId+'/lastAction').on('value', snap => {
