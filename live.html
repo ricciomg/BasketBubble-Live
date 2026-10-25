@@ -45,10 +45,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .res.miss,.res.foul{background:rgba(231,76,60,.15);color:var(--red)}
 .res.neutral{background:rgba(242,183,5,.15);color:var(--accent)}
 .who{font-size:15px;font-weight:700;margin-bottom:10px;text-align:center;word-break:break-word}
-.tiles{display:grid;grid-template-columns:1fr;gap:5px}
-.tile{display:flex;align-items:baseline;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:6px 12px}
-.tile b{font-family:var(--font-display);font-size:22px}
-.tile span{font-size:10px;color:var(--text3);letter-spacing:1px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.tile{display:flex;flex-direction:column;align-items:center;background:var(--surface2);border-radius:8px;padding:5px 2px;border:1px solid transparent;min-width:0}
+.tile.hl{border-color:var(--accent);background:rgba(242,183,5,.12)}
+.tile b{font-family:var(--font-display);font-size:20px;line-height:1.1}
+.tile span{font-size:8.5px;color:var(--text3);letter-spacing:.5px;white-space:nowrap}
 
 #logTitle{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:4px 16px;max-width:1040px;margin:0 auto}
 #log{padding:0 12px 24px;max-width:1040px;margin:0 auto}
@@ -185,10 +186,23 @@ if(!liveId){
       case 'ft':         return {cls:a.made?'made':'miss', txt:a.made?'🎯 Tiro libero segnato':'⭕ Tiro libero sbagliato'};
       case 'reb_off':    return {cls:'neutral', txt:'⬆️ Rimbalzo offensivo'};
       case 'reb_def':    return {cls:'neutral', txt:'⬇️ Rimbalzo difensivo'};
+      case 'assist':     return {cls:'made',    txt:'🤝 Assist'};
+      case 'steal':      return {cls:'made',    txt:'⚡ Palla recuperata'};
+      case 'turnover':   return {cls:'miss',    txt:'💨 Palla persa'};
+      case 'block':      return {cls:'made',    txt:'🧱 Stoppata fatta'};
+      case 'block_against': return {cls:'miss', txt:'🚫 Stoppata subita'};
       case 'foul':       return {cls:'foul',    txt:'✋ Fallo fatto'};
       case 'foul_drawn': return {cls:'neutral', txt:'🙋 Fallo subito'};
     }
     return {cls:'neutral', txt:''};
+  }
+
+  // Quale tile evidenziare in base all'azione appena fatta
+  const KIND_TILE = { shot:'pts', ft:'pts', reb_off:'reb', reb_def:'reb', assist:'ast', steal:'stl',
+                      turnover:'tov', block:'blk', block_against:'blkAgainst', foul:'foul', foul_drawn:'foulDrawn' };
+  let hlTile = null;
+  function tile(key, val, label){
+    return '<div class="tile'+(key===hlTile?' hl':'')+'"><b>'+esc(val)+'</b><span>'+label+'</span></div>';
   }
 
   // Ultima azione: card a destra; il campo mostra il pallino solo se l'azione è un tiro con posizione
@@ -213,16 +227,22 @@ if(!liveId){
     }
     const p = a.player || {};
     const lb = actionLabel(a);
+    hlTile = KIND_TILE[a.kind] || null;
     curShooter = p; renderLineup();
     card.innerHTML =
       '<div class="res '+lb.cls+'">'+esc(lb.txt)+'</div>'+
       '<div class="who">#'+esc(p.num)+' '+esc(p.name)+'</div>'+
       '<div class="tiles">'+
-        '<div class="tile"><b>'+esc(p.pts||0)+'</b><span>PUNTI</span></div>'+
-        '<div class="tile"><b>'+esc(p.min||0)+'\'</b><span>MINUTI</span></div>'+
-        '<div class="tile"><b>'+esc(p.reb||0)+'</b><span>RIMBALZI</span></div>'+
-        '<div class="tile"><b>'+esc(p.foul||0)+'</b><span>FALLI FATTI</span></div>'+
-        '<div class="tile"><b>'+esc(p.foulDrawn||0)+'</b><span>FALLI SUBITI</span></div>'+
+        tile('pts',  p.pts||0,        'PUNTI')+
+        tile('min',  (p.min||0)+'\'', 'MINUTI')+
+        tile('reb',  p.reb||0,        'RIMBALZI')+
+        tile('ast',  p.ast||0,        'ASSIST')+
+        tile('stl',  p.stl||0,        'RECUPERI')+
+        tile('tov',  p.tov||0,        'PERSE')+
+        tile('blk',  p.blk||0,        'STOPPATE')+
+        tile('blkAgainst', p.blkAgainst||0, 'ST. SUBITE')+
+        tile('foul', p.foul||0,       'FALLI')+
+        tile('foulDrawn', p.foulDrawn||0, 'F. SUBITI')+
       '</div>';
   }
 
