@@ -223,7 +223,7 @@ if(!liveId){
   }
 
   // Quale tile evidenziare in base all'azione appena fatta
-  const KIND_TILE = { shot:'pts', ft:'pts', foul:'foul', foul_drawn:'foulDrawn' };
+  const KIND_TILE = { shot:'pts', ft:'pts', foul:'foul' };
   let hlTile = null;
   function tile(key, val, label){
     return '<div class="tile'+(key===hlTile?' hl':'')+'"><b>'+esc(val)+'</b><span>'+label+'</span></div>';
@@ -260,7 +260,6 @@ if(!liveId){
         tile('pts',  p.pts||0,        'PUNTI')+
         tile('min',  (p.min||0)+'\'', 'MINUTI')+
         tile('foul', p.foul||0,       'FALLI FATTI')+
-        tile('foulDrawn', p.foulDrawn||0, 'FALLI SUBITI')+
       '</div>';
   }
 
@@ -294,8 +293,7 @@ if(!liveId){
           tile('pts',  p.pts||0,        'PUNTI')+
           tile('min',  (p.min||0)+'\'', 'MINUTI')+
           tile('foul', p.foul||0,       'FALLI FATTI')+
-          tile('foulDrawn', p.foulDrawn||0, 'FALLI SUBITI')+
-        '</div>';
+          '</div>';
     }
   }
   function openList(){ sheetMode='list'; sheetPlayer=null; sheetFromList=false; renderSheet(); }
