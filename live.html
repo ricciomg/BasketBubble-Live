@@ -49,6 +49,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .who{font-size:15px;font-weight:700;margin-bottom:10px;text-align:center;word-break:break-word}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .tile{display:flex;flex-direction:column;align-items:center;background:var(--surface2);border-radius:8px;padding:6px 2px;border:1px solid transparent;min-width:0}
+.tiles.two{grid-template-columns:1fr 1fr}
 .tile.hl{border-color:var(--accent);background:rgba(242,183,5,.12)}
 .tile b{font-family:var(--font-display);font-size:22px;line-height:1.1}
 .tile span{font-size:9px;color:var(--text3);letter-spacing:.5px;white-space:nowrap}
@@ -233,6 +234,16 @@ if(!liveId){
     return '<div class="tile'+(key===hlTile?' hl':'')+'"><b>'+esc(val)+'</b><span>'+label+'</span></div>';
   }
 
+  // Mostrare o no i minuti giocati: scelta fatta nell'app all'avvio della diretta (meta.showMinutes)
+  let showMinutes = true, lastActionData = null;
+  function statTiles(p){
+    return '<div class="tiles'+(showMinutes?'':' two')+'">'+
+      tile('pts',  p.pts||0,  'PUNTI')+
+      (showMinutes ? tile('min', (p.min||0)+'\'', 'MINUTI') : '')+
+      tile('foul', p.foul||0, 'FALLI')+
+    '</div>';
+  }
+
   // Ultima azione: card a destra; il campo mostra il pallino solo se l'azione è un tiro con posizione
   function renderAction(a){
     const g = document.getElementById('dots');
@@ -260,11 +271,7 @@ if(!liveId){
     card.innerHTML =
       '<div class="res '+lb.cls+'">'+esc(lb.txt)+'</div>'+
       '<div class="who">#'+esc(p.num)+' '+esc(p.name)+'</div>'+
-      '<div class="tiles">'+
-        tile('pts',  p.pts||0,        'PUNTI')+
-        tile('min',  (p.min||0)+'\'', 'MINUTI')+
-        tile('foul', p.foul||0,       'FALLI')+
-      '</div>';
+      statTiles(p);
   }
 
   // ── Elenco giocatori + scheda dettaglio (stesse 4 statistiche della card live) ──
@@ -282,12 +289,12 @@ if(!liveId){
       if(!curRoster.length){ body.innerHTML = '<div class="empty">Nessun giocatore</div>'; return; }
       const rows = curRoster.slice().sort((a,b)=>(parseInt(a.num,10)||0)-(parseInt(b.num,10)||0));
       body.innerHTML =
-        '<div class="rhead"><span class="nm"></span><span class="c">PUNTI</span><span class="c">MIN</span><span class="c">FALLI</span></div>'+
+        '<div class="rhead"><span class="nm"></span><span class="c">PUNTI</span>'+(showMinutes?'<span class="c">MIN</span>':'')+'<span class="c">FALLI</span></div>'+
         rows.map(r =>
         '<div class="rrow" data-num="'+esc(r.num)+'" data-name="'+esc(r.name)+'">'+
           '<span class="nm"><span class="n">#'+esc(r.num)+'</span>'+esc(r.name)+'</span>'+
           '<span class="c">'+esc(r.pts||0)+'</span>'+
-          '<span class="c">'+esc(r.min||0)+'\'</span>'+
+          (showMinutes ? '<span class="c">'+esc(r.min||0)+'\'</span>' : '')+
           '<span class="c">'+esc(r.foul||0)+'</span>'+
         '</div>').join('');
     } else {
@@ -297,11 +304,7 @@ if(!liveId){
       hlTile = null;
       body.innerHTML =
         '<div class="who">#'+esc(p.num)+' '+esc(p.name)+'</div>'+
-        '<div class="tiles">'+
-          tile('pts',  p.pts||0,        'PUNTI')+
-          tile('min',  (p.min||0)+'\'', 'MINUTI')+
-          tile('foul', p.foul||0,       'FALLI')+
-          '</div>';
+        statTiles(p);
     }
   }
   function openList(){ sheetMode='list'; sheetPlayer=null; sheetFromList=false; renderSheet(); }
@@ -330,6 +333,9 @@ if(!liveId){
     expiresAt = meta.expiresAt;
     if(expired()){ showOverlay('🏁 Diretta terminata', 'Questa trasmissione non è più disponibile.'); return; }
     document.getElementById('oppText').textContent = 'vs ' + (meta.opponent||'—') + (meta.home==='home' ? ' · Casa' : ' · Trasferta');
+    showMinutes = meta.showMinutes !== false;   // vecchie dirette senza il campo: minuti mostrati
+    if(lastActionData) renderAction(lastActionData);
+    if(sheetMode) renderSheet();
     hideOverlay();
   });
 
@@ -348,7 +354,8 @@ if(!liveId){
 
   db.ref('live/'+liveId+'/lastAction').on('value', snap => {
     if(expired()) return;
-    renderAction(snap.val());
+    lastActionData = snap.val();
+    renderAction(lastActionData);
   });
 
   // Log: solo le ultime 15 azioni (l'app cancella le piu' vecchie, qui si toglie la riga)
