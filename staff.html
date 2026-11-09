@@ -140,6 +140,8 @@ table.t{border-collapse:collapse;width:100%;font-size:12px}
 #lang{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);right:10px;z-index:30;display:flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
 #lang button{background:none;border:0;color:var(--text3);font-size:10px;font-weight:700;padding:4px 7px;cursor:pointer}
 #lang button.on{background:var(--accent);color:#000}
+#countdown{display:none;text-align:center;margin-top:6px;font-size:12px;color:var(--text2)}
+#countdown b{font-family:var(--font-display);font-size:18px;color:var(--accent);letter-spacing:1px;margin-left:6px}
 </style>
 </head>
 <body>
@@ -155,6 +157,7 @@ table.t{border-collapse:collapse;width:100%;font-size:12px}
     <div id="score">0 — 0</div>
     <div id="clock">00:00</div>
   </div>
+  <div id="countdown"><span data-i18n="startsIn">Inizio partita tra</span><b id="cdTime">--:--</b></div>
 </div>
 
 <div id="body" style="display:none">
@@ -239,7 +242,7 @@ const db = firebase.database();
 // ── Lingua: automatica dal dispositivo (inglese se en*, altrimenti italiano), cambiabile con IT/EN ──
 const I18N = {
   it: {
-    connTitle:'⏳ Connessione...', connText:'Un attimo di pazienza.',
+    connTitle:'⏳ Connessione...', connText:'Un attimo di pazienza.', startsIn:'Inizio partita tra',
     noLiveTitle:'⚠️ Nessuna pagina staff', noLiveText:'Il link non contiene un codice valido.',
     notFoundTitle:'⚠️ Pagina staff non trovata', notFoundText:'Controlla il link ricevuto.',
     endedTitle:'🏁 Diretta terminata', endedText:'Questa trasmissione non è più disponibile.',
@@ -265,7 +268,7 @@ const I18N = {
     luMin:'Min', luShowAll:'Mostra tutti ({n})', luShowLess:'Mostra meno'
   },
   en: {
-    connTitle:'⏳ Connecting...', connText:'Just a moment.',
+    connTitle:'⏳ Connecting...', connText:'Just a moment.', startsIn:'Game starts in',
     noLiveTitle:'⚠️ No staff page', noLiveText:'The link does not contain a valid code.',
     notFoundTitle:'⚠️ Staff page not found', notFoundText:'Please check the link you received.',
     endedTitle:'🏁 Live broadcast ended', endedText:'This broadcast is no longer available.',
@@ -720,12 +723,28 @@ if(!staffId){
   });
 
   // ── Firebase ──
+  // ── Conto alla rovescia all'inizio partita (meta.startsAt = orario assoluto in ms; assente = nessun timer) ──
+  let startsAt = null, matchStarted = false, cdTick = null, serverOffset = 0;
+  db.ref('.info/serverTimeOffset').on('value', snap => { serverOffset = snap.val() || 0; renderCountdown(); });
+  function renderCountdown(){
+    const el = document.getElementById('countdown');
+    if(!el) return;
+    const left = startsAt ? Math.round((startsAt - (Date.now() + serverOffset)) / 1000) : 0;
+    if(!startsAt || matchStarted || left <= 0){ el.style.display = 'none'; clearInterval(cdTick); cdTick = null; return; }
+    const d = Math.floor(left / 86400), h = Math.floor(left % 86400 / 3600), mi = Math.floor(left % 3600 / 60), sc = left % 60;
+    const p = n => String(n).padStart(2, '0');
+    document.getElementById('cdTime').textContent =
+      (d ? d + (LANG === 'en' ? 'd ' : 'g ') : '') + (d || h ? p(h) + ':' : '') + p(mi) + ':' + p(sc);
+    el.style.display = 'block';
+    if(!cdTick) cdTick = setInterval(renderCountdown, 1000);
+  }
+
   db.ref('staff/'+staffId+'/meta').on('value', snap => {
     const meta = snap.val();
     if(!meta){ showOverlay('notFoundTitle', 'notFoundText'); return; }
     expiresAt = meta.expiresAt;
     if(expired()){ showOverlay('endedTitle', 'endedText'); return; }
-    lastMeta = meta; renderOpp(); renderFlow();
+    lastMeta = meta; startsAt = meta.startsAt || null; renderCountdown(); renderOpp(); renderFlow();
     hideOverlay();
   });
   db.ref('staff/'+staffId+'/state').on('value', snap => {
@@ -734,6 +753,8 @@ if(!staffId){
     $('score').textContent = s.ourScore + ' — ' + s.oppScore;
     $('period').textContent = s.periodLabel || '';
     localSeconds = s.timerSeconds; localRunning = !!s.timerRunning;
+    if(s.timerRunning || (s.ourScore||0) + (s.oppScore||0) > 0) matchStarted = true;   // partita iniziata: via il conto alla rovescia
+    renderCountdown();
     renderClock(); startLocalClock();
     curOnCourt = arr(s.onCourt);
     renderLineup();
