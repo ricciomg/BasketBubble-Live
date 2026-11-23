@@ -58,6 +58,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tile b.sm{font-family:Arial,sans-serif;font-weight:800;font-size:11px}
 .tile span{font-size:8px;color:var(--text3);margin-top:2px;white-space:nowrap}
 
+#mainExtra{max-width:1040px;margin:0 auto;padding:0 12px 8px}
 #logTitle{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:4px 16px;max-width:1040px;margin:0 auto}
 #log{padding:0 12px 24px;max-width:1040px;margin:0 auto}
 .entry{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px}
@@ -184,6 +185,8 @@ table.t{border-collapse:collapse;width:100%;font-size:12px}
     </div>
   </div>
 
+  <div id="mainExtra"></div>
+
   <div id="logTitle" data-i18n="matchLog">Log partita</div>
   <div id="log"></div>
 </div>
@@ -265,6 +268,7 @@ const I18N = {
     allPlayers:'Tutta la squadra', zoneOff:'⚙️ Selezione zone disattivata nell\'app',
     shotsCount:'{n} tiri', noShots:'Nessun tiro registrato',
     gfUs:'Noi', gfMax:'Vantaggio più ampio', gfTies:'Punteggio in parità', gfChanges:'Cambi vantaggio',
+    sTeam:'Totali di squadra', tRo:'Rimbalzi Off.', tRd:'Rimbalzi Dif.', tRt:'Rimbalzi Tot.', tAst:'Assist', tStl:'Palle Rec.', tTov:'Palle Perse', tBlk:'Stopp. Fatte', tFl:'Falli Fatti', tFd:'Falli Subiti',
     luMin:'Min', luShowAll:'Mostra tutti ({n})', luShowLess:'Mostra meno'
   },
   en: {
@@ -291,6 +295,7 @@ const I18N = {
     allPlayers:'All players', zoneOff:'⚙️ Zone selection is disabled in the app',
     shotsCount:'{n} shots', noShots:'No shots recorded',
     gfUs:'Us', gfMax:'Biggest Lead', gfTies:'Tied Score', gfChanges:'Lead Changes',
+    sTeam:'Team totals', tRo:'Off. Rebounds', tRd:'Def. Rebounds', tRt:'Total Rebounds', tAst:'Assists', tStl:'Steals', tTov:'Turnovers', tBlk:'Blocks', tFl:'Fouls Committed', tFd:'Fouls Drawn',
     luMin:'Min', luShowAll:'Show all ({n})', luShowLess:'Show less'
   }
 };
@@ -640,11 +645,11 @@ if(!staffId){
       '<text x="'+(lx+6)+'" y="'+(oLbl+4)+'" font-size="8" font-weight="700" fill="#f2b705" font-family="sans-serif">'+last.our+'</text>'+
       '<text class="gftxt" x="'+(lx+6)+'" y="'+(pLbl+4)+'" font-size="8" font-weight="700">'+last.opp+'</text></svg>';
   }
-  function renderFlow(){
-    const w = $('flowWrap'); const f = rep && rep.flow;
-    if(!f || arr(f.s).length < 2){ w.innerHTML = ''; return; }
+  function flowSectionHtml(){
+    const f = rep && rep.flow;
+    if(!f || arr(f.s).length < 2) return '';
     const oppName = lastMeta && lastMeta.opponent ? lastMeta.opponent : '';
-    w.innerHTML = '<div class="sec">'+esc(t('sFlow'))+'</div><div class="card">'+
+    return '<div class="sec">'+esc(t('sFlow'))+'</div><div class="card">'+
       '<div style="margin-bottom:8px">'+flowSvg(f)+'</div>'+
       '<div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--text2);margin-bottom:12px">'+
         '<span><span style="display:inline-block;width:14px;height:3px;background:#f2b705;border-radius:2px;vertical-align:middle;margin-right:4px"></span>'+esc(t('gfUs'))+'</span>'+
@@ -654,6 +659,25 @@ if(!staffId){
         '<div class="card sc" style="background:var(--surface2)"><div class="i">⚖️</div><div class="v">'+(Number(f.ties)||0)+'</div><div class="l">'+esc(t('gfTies'))+'</div></div>'+
         '<div class="card sc" style="background:var(--surface2)"><div class="i">🔄</div><div class="v">'+(Number(f.lc)||0)+'</div><div class="l">'+esc(t('gfChanges'))+'</div></div>'+
       '</div></div>';
+  }
+
+  // Totali di squadra (stesse voci del riepilogo del report in app)
+  function teamSectionHtml(){
+    const T = rep && rep.team; if(!T) return '';
+    const v = k => Number(T[k]) || 0;
+    const items = [['tRo', v('ro')], ['tRd', v('rd')], ['tRt', v('ro')+v('rd')], ['tAst', v('ast')], ['tStl', v('stl')],
+                   ['tTov', v('tov')], ['tBlk', v('blk')], ['tFl', v('fl')], ['tFd', v('fd')]];
+    return '<div class="sec">'+esc(t('sTeam'))+'</div><div class="card"><div class="tiles" style="grid-template-columns:repeat(3,1fr)">'+
+      items.map(([l, x]) => '<div class="tile"><b>'+x+'</b><span>'+esc(t(l))+'</span></div>').join('')+'</div></div>';
+  }
+  // Pagina principale: totali di squadra + flusso partita (la scheda "Tutti i giocatori" mantiene il suo flusso)
+  function renderMainExtra(){
+    const el = $('mainExtra'); if(!el) return;
+    el.innerHTML = teamSectionHtml() + flowSectionHtml();
+  }
+  function renderFlow(){
+    $('flowWrap').innerHTML = flowSectionHtml();
+    renderMainExtra();
   }
 
   // ── Quintetti ──
@@ -768,6 +792,7 @@ if(!staffId){
     const r = snap.val();
     if(!r || expired()) return;
     rep = r;
+    renderMainExtra();
     if(sheetMode === 'list') renderReportSections(); else if(sheetMode === 'player') renderPlayerView();
   });
   db.ref('staff/'+staffId+'/diag').on('value', snap => {
@@ -792,7 +817,7 @@ if(!staffId){
 
   // Cambio lingua: ridisegna le parti generate dinamicamente
   onLangChange = () => {
-    renderOpp(); renderAction(lastActionData); renderSheet();
+    renderOpp(); renderAction(lastActionData); renderSheet(); renderFlow();
   };
 }
 </script>

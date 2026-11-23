@@ -49,11 +49,26 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .who{font-size:15px;font-weight:700;margin-bottom:10px;text-align:center;word-break:break-word}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .tile{display:flex;flex-direction:column;align-items:center;background:var(--surface2);border-radius:8px;padding:6px 2px;border:1px solid transparent;min-width:0}
-.tiles.two{grid-template-columns:1fr 1fr}
 .tile.hl{border-color:var(--accent);background:rgba(242,183,5,.12)}
 .tile b{font-family:var(--font-display);font-size:22px;line-height:1.1}
-.tile span{font-size:9px;color:var(--text3);letter-spacing:.5px;white-space:nowrap}
+.tile span{font-size:9px;color:var(--text3);letter-spacing:.3px;text-align:center;line-height:1.15}
+.tile b.sm{font-family:Arial,sans-serif;font-weight:800;font-size:14px}
 
+#extra{max-width:1040px;margin:0 auto;padding:0 12px 8px}
+.sec{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:14px 4px 8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+.grid{display:grid;gap:8px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.sc{text-align:center;padding:12px 8px}
+.sc .i{font-size:18px;margin-bottom:2px}
+.sc .v{font-size:22px;font-weight:900;line-height:1}
+.sc .l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-top:4px}
+.gfgrid{stroke:var(--border);stroke-width:1}
+.gftxt{fill:var(--text3);font-family:sans-serif}
+.rscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rtab{min-width:max-content}
+.rhead .c.w,.rrow .c.w{width:54px}
+.rrow .c.w{font-size:15px}
 #logTitle{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:4px 16px;max-width:1040px;margin:0 auto}
 #log{padding:0 12px 24px;max-width:1040px;margin:0 auto}
 .entry{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px}
@@ -72,7 +87,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 #sheetBody{flex:1;overflow-y:auto;padding:12px;max-width:520px;width:100%;margin:0 auto}
 .rhead,.rrow{display:flex;align-items:center;gap:6px}
 .rhead{padding:0 12px 4px;font-size:9px;color:var(--text3);letter-spacing:.5px}
-.rhead .nm,.rrow .nm{flex:1;min-width:0}
+.rhead .nm,.rrow .nm{flex:1;min-width:120px}
 .rhead .c,.rrow .c{width:42px;text-align:center;flex-shrink:0}
 .rrow{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:6px;cursor:pointer;font-size:14px}
 .rrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -145,6 +160,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     </div>
   </div>
 
+  <div id="extra"></div>
+
   <div id="logTitle" data-i18n="matchLog">Log partita</div>
   <div id="log"></div>
 </div>
@@ -185,7 +202,12 @@ const I18N = {
     aRebOff:'⬆️ Rimbalzo offensivo', aRebDef:'⬇️ Rimbalzo difensivo',
     aAssist:'🤝 Assist', aSteal:'⚡ Palla recuperata', aTurnover:'💨 Palla persa',
     aBlock:'🧱 Stoppata fatta', aBlockAg:'🚫 Stoppata subita',
-    aFoul:'✋ Fallo fatto', aFoulDrawn:'🙋 Fallo subito'
+    aFoul:'✋ Fallo fatto', aFoulDrawn:'🙋 Fallo subito',
+    tVal:'VAL', tPm:'+/−', t2:'2PT', t3:'3PT', tFt:'TL', tRo:'RIMB. OFF.', tRd:'RIMB. DIF.', tAst:'ASSIST', tStl:'PALLE REC.',
+    tTov:'PALLE PERSE', tFd:'FALLI SUBITI', tBlk:'STOPP. FATTE', tBka:'STOPP. SUBITE',
+    hVal:'VAL', hPm:'+/−', h2:'2PT', h3:'3PT', hFt:'TL', hRo:'RO', hRd:'RD', hAst:'AST', hStl:'PR', hTov:'PP', hFd:'FS', hBlk:'SF', hBka:'SS',
+    sTeam:'Totali di squadra', tRt:'RIMB. TOT.', tFl:'FALLI FATTI',
+    sFlow:'Flusso partita', gfUs:'Noi', gfMax:'Vantaggio più ampio', gfTies:'Punteggio in parità', gfChanges:'Cambi vantaggio'
   },
   en: {
     connTitle:'⏳ Connecting...', connText:'Just a moment.', startsIn:'Game starts in',
@@ -202,7 +224,12 @@ const I18N = {
     aRebOff:'⬆️ Offensive rebound', aRebDef:'⬇️ Defensive rebound',
     aAssist:'🤝 Assist', aSteal:'⚡ Steal', aTurnover:'💨 Turnover',
     aBlock:'🧱 Block', aBlockAg:'🚫 Shot blocked',
-    aFoul:'✋ Foul committed', aFoulDrawn:'🙋 Foul drawn'
+    aFoul:'✋ Foul committed', aFoulDrawn:'🙋 Foul drawn',
+    tVal:'RATING', tPm:'+/−', t2:'2PT', t3:'3PT', tFt:'FT', tRo:'OFF. REB', tRd:'DEF. REB', tAst:'ASSISTS', tStl:'STEALS',
+    tTov:'TURNOVERS', tFd:'FOULS DRAWN', tBlk:'BLOCKS', tBka:'BLOCKS RECV.',
+    hVal:'VAL', hPm:'+/−', h2:'2PT', h3:'3PT', hFt:'FT', hRo:'OR', hRd:'DR', hAst:'AST', hStl:'STL', hTov:'TOV', hFd:'FD', hBlk:'BLK', hBka:'BA',
+    sTeam:'Team totals', tRt:'TOT. REB', tFl:'FOULS',
+    sFlow:'Game flow', gfUs:'Us', gfMax:'Biggest Lead', gfTies:'Tied Score', gfChanges:'Lead Changes'
   }
 };
 function detectLang(){
@@ -297,21 +324,46 @@ if(!liveId){
     return {cls:'neutral', txt:''};
   }
 
-  // Quale tile evidenziare in base all'azione appena fatta
-  const KIND_TILE = { shot:'pts', ft:'pts', foul:'foul' };
-  let hlTile = null;
-  function tile(key, val, label){
-    return '<div class="tile'+(key===hlTile?' hl':'')+'"><b>'+esc(val)+'</b><span>'+label+'</span></div>';
+  // Statistiche mostrate: scelte nell'app all'avvio (meta.stats, stringa "pts,foul,min,..."); vecchie dirette: punti, falli e minuti
+  let selStats = new Set(['pts','foul','min']);
+  const sg = v => (v>0?'+':'')+v;
+  const pctS = (m,a) => a ? Math.round(m*100/a)+'%' : '–';
+  // Ordine = ordine della modale "go live". Voce: [chiave, valore, etichetta tile, intestazione colonna, (percentuale)]
+  const STAT_ITEMS = [
+    ['pts',   p => [['pts', p.pts||0, 'tPts', 'hPts']]],
+    ['foul',  p => [['foul', p.foul||0, 'tFoul', 'hFoul']]],
+    ['min',   p => [['min', (p.min||0)+"'", 'tMin', 'hMin']]],
+    ['val',   p => [['val', sg(p.val||0), 'tVal', 'hVal']]],
+    ['pm',    p => [['pm', sg(p.pm||0), 'tPm', 'hPm']]],
+    ['shoot', p => [
+      ['fg2', (p.fg2m||0)+'/'+(p.fg2a||0), 't2', 'h2', pctS(p.fg2m||0, p.fg2a||0)],
+      ['fg3', (p.fg3m||0)+'/'+(p.fg3a||0), 't3', 'h3', pctS(p.fg3m||0, p.fg3a||0)],
+      ['ft',  (p.ftm||0)+'/'+(p.fta||0),   'tFt', 'hFt', pctS(p.ftm||0, p.fta||0)]]],
+    ['reb',   p => [['ro', p.ro||0, 'tRo', 'hRo'], ['rd', p.rd||0, 'tRd', 'hRd']]],
+    ['ast',   p => [['ast', p.ast||0, 'tAst', 'hAst']]],
+    ['stl',   p => [['stl', p.stl||0, 'tStl', 'hStl']]],
+    ['tov',   p => [['tov', p.tov||0, 'tTov', 'hTov']]],
+    ['fd',    p => [['fd',  p.fd||0,  'tFd',  'hFd']]],
+    ['blk',   p => [['blk', p.blk||0, 'tBlk', 'hBlk']]],
+    ['bka',   p => [['bka', p.bka||0, 'tBka', 'hBka']]]
+  ];
+  function activeItems(p){
+    const out = [];
+    STAT_ITEMS.forEach(([k, f]) => { if(selStats.has(k)) f(p || {}).forEach(it => out.push(it)); });
+    return out;
   }
-
-  // Mostrare o no i minuti giocati: scelta fatta nell'app all'avvio della diretta (meta.showMinutes)
-  let showMinutes = true, lastActionData = null;
+  // Quali tile evidenziare in base all'azione appena fatta
+  const KIND_HL = { ft:['pts','ft'], reb_off:['ro'], reb_def:['rd'], assist:['ast'], steal:['stl'], turnover:['tov'],
+                    block:['blk'], block_against:['bka'], foul:['foul'], foul_drawn:['fd'] };
+  let hlKeys = [];
+  function tileHtml(it){
+    const sub = it[4];
+    return '<div class="tile'+(hlKeys.includes(it[0])?' hl':'')+'"><b'+(sub!==undefined?' class="sm"':'')+'>'+esc(it[1])+'</b><span>'+esc(t(it[2]))+(sub!==undefined?' · '+esc(sub):'')+'</span></div>';
+  }
+  let lastActionData = null;
   function statTiles(p){
-    return '<div class="tiles'+(showMinutes?'':' two')+'">'+
-      tile('pts',  p.pts||0,  t('tPts'))+
-      (showMinutes ? tile('min', (p.min||0)+'\'', t('tMin')) : '')+
-      tile('foul', p.foul||0, t('tFoul'))+
-    '</div>';
+    const items = activeItems(p);
+    return items.length ? '<div class="tiles">'+items.map(tileHtml).join('')+'</div>' : '';
   }
 
   // Ultima azione: card a destra; il campo mostra il pallino solo se l'azione è un tiro con posizione
@@ -336,7 +388,7 @@ if(!liveId){
     }
     const p = a.player || {};
     const lb = actionLabel(a);
-    hlTile = KIND_TILE[a.kind] || null;
+    hlKeys = a.kind === 'shot' ? ['pts', Number(a.pts) === 3 ? 'fg3' : 'fg2'] : (KIND_HL[a.kind] || []);
     curShooter = p; renderLineup();
     card.innerHTML =
       '<div class="res '+lb.cls+'">'+esc(lb.txt)+'</div>'+
@@ -358,20 +410,20 @@ if(!liveId){
       title.textContent = t('sheetAll');
       if(!curRoster.length){ body.innerHTML = '<div class="empty">'+esc(t('noPlayers'))+'</div>'; return; }
       const rows = curRoster.slice().sort((a,b)=>(parseInt(a.num,10)||0)-(parseInt(b.num,10)||0));
-      body.innerHTML =
-        '<div class="rhead"><span class="nm"></span><span class="c">'+esc(t('hPts'))+'</span>'+(showMinutes?'<span class="c">'+esc(t('hMin'))+'</span>':'')+'<span class="c">'+esc(t('hFoul'))+'</span></div>'+
+      const heads = activeItems({});
+      const wcls = it => it[4] !== undefined ? ' w' : '';
+      body.innerHTML = '<div class="rscroll"><div class="rtab">'+
+        '<div class="rhead"><span class="nm"></span>'+heads.map(it => '<span class="c'+wcls(it)+'">'+esc(t(it[3]))+'</span>').join('')+'</div>'+
         rows.map(r =>
         '<div class="rrow" data-num="'+esc(r.num)+'" data-name="'+esc(r.name)+'">'+
           '<span class="nm"><span class="n">#'+esc(r.num)+'</span>'+esc(r.name)+'</span>'+
-          '<span class="c">'+esc(r.pts||0)+'</span>'+
-          (showMinutes ? '<span class="c">'+esc(r.min||0)+'\'</span>' : '')+
-          '<span class="c">'+esc(r.foul||0)+'</span>'+
-        '</div>').join('');
+          activeItems(r).map(it => '<span class="c'+wcls(it)+'">'+esc(it[1])+'</span>').join('')+
+        '</div>').join('')+'</div></div>';
     } else {
       const p = findPlayer(sheetPlayer.num, sheetPlayer.name);
       title.textContent = t('sheetPlayer');
       if(!p){ body.innerHTML = '<div class="empty">'+esc(t('noData'))+'</div>'; return; }
-      hlTile = null;
+      hlKeys = [];
       body.innerHTML =
         '<div class="who">#'+esc(p.num)+' '+esc(p.name)+'</div>'+
         statTiles(p);
@@ -396,6 +448,78 @@ if(!liveId){
     openPlayer(el.dataset.num, el.dataset.name, true);
   });
 
+
+  // ── Totali di squadra e flusso partita (state.team / state.flow) ──
+  const arr = x => Array.isArray(x) ? x : Object.values(x || {});
+  let curTeam = null, curFlow = null, extraSig = '';
+  function flowSvg(flow){
+    const series = arr(flow.s).map(x => ({our:Number(x.o)||0, opp:Number(x.p)||0, q:x.q, anchor:!!Number(x.a)}));
+    const pkeys = arr(flow.k);
+    const W = 340, H = 180, padL = 30, padR = 36, padT = 12, padB = 26, plotW = W-padL-padR, plotH = H-padT-padB;
+    const maxY = Math.max(...series.map(s => s.our), ...series.map(s => s.opp), 1);
+    const py = v => Math.round(H-padB-v*plotH/maxY);
+    const nQ = pkeys.length || 1, qW = plotW/nQ, qOrder = pkeys.map(p => p.key);
+    const buckets = pkeys.map(() => []);
+    series.forEach((s, i) => { if(i === 0) return; const qi = qOrder.indexOf(s.q); if(qi >= 0) buckets[qi].push(i); });
+    const sx = new Array(series.length); sx[0] = padL;
+    buckets.forEach((idx, qi) => {
+      const xl = padL+qi*qW, xr = padL+(qi+1)*qW;
+      const intra = idx.filter(i => !series[i].anchor), anchor = idx.find(i => series[i].anchor), total = intra.length+1;
+      intra.forEach((si, pos) => { sx[si] = Math.round(xl+(pos+1)/total*qW); });
+      if(anchor !== undefined) sx[anchor] = Math.round(xr);
+    });
+    for(let i = 1; i < sx.length; i++) if(sx[i] === undefined) sx[i] = sx[i-1];
+    let bands = '';
+    pkeys.forEach((p, qi) => {
+      const x1 = Math.round(padL+qi*qW), x2 = Math.round(padL+(qi+1)*qW);
+      if(qi%2 === 0) bands += '<rect x="'+x1+'" y="'+padT+'" width="'+(x2-x1)+'" height="'+plotH+'" fill="rgba(128,128,128,0.06)"/>';
+      if(qi > 0) bands += '<line class="gfgrid" x1="'+x1+'" y1="'+padT+'" x2="'+x1+'" y2="'+(H-padB)+'" stroke-dasharray="3,3"/>';
+      bands += '<text class="gftxt" x="'+((x1+x2)/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10">'+esc(p.label)+'</text>';
+    });
+    const yStep = Math.max(1, Math.ceil((maxY/4)/5)*5);
+    let grid = '';
+    for(let v = 0; v <= maxY; v += yStep){
+      const y = py(v);
+      grid += '<line class="gfgrid" x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'"/><text class="gftxt" x="'+(padL-4)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="9">'+v+'</text>';
+    }
+    const ours = series.map((s, i) => sx[i]+','+py(s.our)).join(' ');
+    const opps = series.map((s, i) => sx[i]+','+py(s.opp)).join(' ');
+    const last = series[series.length-1], lx = sx[series.length-1];
+    const oy = py(last.our), py2 = py(last.opp), gap = Math.abs(oy-py2);
+    const oLbl = oy + (gap < 14 ? (oy <= py2 ? -4 : 4) : 0), pLbl = py2 + (gap < 14 ? (py2 < oy ? 4 : -4) : 0);
+    return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">'+bands+grid+
+      '<polyline points="'+opps+'" fill="none" style="stroke:var(--text3)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<polyline points="'+ours+'" fill="none" stroke="#f2b705" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<text x="'+(lx+6)+'" y="'+(oLbl+4)+'" font-size="8" font-weight="700" fill="#f2b705" font-family="sans-serif">'+last.our+'</text>'+
+      '<text class="gftxt" x="'+(lx+6)+'" y="'+(pLbl+4)+'" font-size="8" font-weight="700">'+last.opp+'</text></svg>';
+  }
+  function renderExtra(){
+    const box = document.getElementById('extra'); if(!box) return;
+    let h = '';
+    const T = curTeam;
+    if(T){
+      const v = k => Number(T[k]) || 0;
+      const items = [['tRo', v('ro')], ['tRd', v('rd')], ['tRt', v('ro')+v('rd')], ['tAst', v('ast')], ['tStl', v('stl')],
+                     ['tTov', v('tov')], ['tBlk', v('blk')], ['tFl', v('fl')], ['tFd', v('fd')]];
+      h += '<div class="sec">'+esc(t('sTeam'))+'</div><div class="card"><div class="tiles">'+
+        items.map(([l, x]) => '<div class="tile"><b>'+x+'</b><span>'+esc(t(l))+'</span></div>').join('')+'</div></div>';
+    }
+    const f = curFlow;
+    if(f && arr(f.s).length >= 2){
+      const oppName = lastMeta && lastMeta.opponent ? lastMeta.opponent : '';
+      h += '<div class="sec">'+esc(t('sFlow'))+'</div><div class="card">'+
+        '<div style="margin-bottom:8px">'+flowSvg(f)+'</div>'+
+        '<div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--text2);margin-bottom:12px">'+
+          '<span><span style="display:inline-block;width:14px;height:3px;background:#f2b705;border-radius:2px;vertical-align:middle;margin-right:4px"></span>'+esc(t('gfUs'))+'</span>'+
+          '<span><span style="display:inline-block;width:14px;height:3px;background:var(--text3);border-radius:2px;vertical-align:middle;margin-right:4px"></span>'+esc(oppName)+'</span></div>'+
+        '<div class="grid g3">'+
+          '<div class="card sc" style="background:var(--surface2)"><div class="i">🚀</div><div class="v" style="font-size:18px"><span style="color:var(--accent)">+'+(Number(f.ml)||0)+'</span><span style="color:var(--text3);font-size:12px"> / </span><span style="color:var(--text3)">+'+(Number(f.mo)||0)+'</span></div><div class="l">'+esc(t('gfMax'))+'</div></div>'+
+          '<div class="card sc" style="background:var(--surface2)"><div class="i">⚖️</div><div class="v">'+(Number(f.ties)||0)+'</div><div class="l">'+esc(t('gfTies'))+'</div></div>'+
+          '<div class="card sc" style="background:var(--surface2)"><div class="i">🔄</div><div class="v">'+(Number(f.lc)||0)+'</div><div class="l">'+esc(t('gfChanges'))+'</div></div>'+
+        '</div></div>';
+    }
+    box.innerHTML = h;
+  }
 
   function renderOpp(){
     if(!lastMeta) return;
@@ -425,7 +549,9 @@ if(!liveId){
     expiresAt = meta.expiresAt;
     if(expired()){ showOverlay('endedTitle', 'endedText'); return; }
     lastMeta = meta; startsAt = meta.startsAt || null; renderCountdown(); renderOpp();
-    showMinutes = meta.showMinutes !== false;   // vecchie dirette senza il campo: minuti mostrati
+    selStats = new Set(typeof meta.stats === 'string' ? meta.stats.split(',').filter(Boolean)
+                       : (meta.showMinutes === false ? ['pts','foul'] : ['pts','foul','min']));   // vecchie dirette senza il campo: punti, falli, minuti
+    renderExtra();
     if(lastActionData) renderAction(lastActionData);
     if(sheetMode) renderSheet();
     hideOverlay();
@@ -444,6 +570,8 @@ if(!liveId){
     renderLineup();
     curRoster = Array.isArray(s.roster) ? s.roster : Object.values(s.roster || {});
     if(sheetMode) renderSheet();
+    const sig = JSON.stringify([s.team || null, s.flow || null]);
+    if(sig !== extraSig){ extraSig = sig; curTeam = s.team || null; curFlow = s.flow || null; renderExtra(); }
   });
 
   db.ref('live/'+liveId+'/lastAction').on('value', snap => {
@@ -480,6 +608,7 @@ if(!liveId){
   onLangChange = () => {
     renderOpp();
     renderAction(lastActionData);
+    renderExtra();
     if(sheetMode) renderSheet();
   };
 }
