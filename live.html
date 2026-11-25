@@ -65,7 +65,20 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .sc .l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-top:4px}
 .gfgrid{stroke:var(--border);stroke-width:1}
 .gftxt{fill:var(--text3);font-family:sans-serif}
-.rscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;width:100%;font-size:12px}
+.t th,.t td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap}
+.t th{color:var(--text3);font-size:10px;letter-spacing:.4px;background:var(--surface)}
+.t th.sortable{cursor:pointer;user-select:none}
+.t th.sa{color:var(--accent)}
+.t td:first-child,.t th:first-child{text-align:left}
+#lt td:first-child,#lt th:first-child{position:sticky;left:0;background:var(--surface);z-index:1}
+.t tr.click{cursor:pointer}
+.t tr.tot td{font-weight:700;border-top:2px solid var(--border);background:var(--surface2)}
+.t tr.tot td:first-child{background:var(--surface2)}
+.t .n{color:var(--accent);font-weight:700}
+.pct{font-size:10px;color:var(--text3)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px}
 .rtab{min-width:max-content}
 .rhead .c.w,.rrow .c.w{width:54px}
 .rrow .c.w{font-size:15px}
@@ -206,7 +219,7 @@ const I18N = {
     tVal:'VAL', tPm:'+/−', t2:'2PT', t3:'3PT', tFt:'TL', tRo:'RIMB. OFF.', tRd:'RIMB. DIF.', tAst:'ASSIST', tStl:'PALLE REC.',
     tTov:'PALLE PERSE', tFd:'FALLI SUBITI', tBlk:'STOPP. FATTE', tBka:'STOPP. SUBITE',
     hVal:'VAL', hPm:'+/−', h2:'2PT', h3:'3PT', hFt:'TL', hRo:'RO', hRd:'RD', hAst:'AST', hStl:'PR', hTov:'PP', hFd:'FS', hBlk:'SF', hBka:'SS',
-    sTeam:'Totali di squadra', tRt:'RIMB. TOT.', tFl:'FALLI FATTI',
+    sTeam:'Totali di squadra', tRt:'RIMB. TOT.', tFl:'FALLI FATTI', cPlayer:'GIOCATORE', tot:'TOT',
     sFlow:'Flusso partita', gfUs:'Noi', gfMax:'Vantaggio più ampio', gfTies:'Punteggio in parità', gfChanges:'Cambi vantaggio'
   },
   en: {
@@ -228,7 +241,7 @@ const I18N = {
     tVal:'RATING', tPm:'+/−', t2:'2PT', t3:'3PT', tFt:'FT', tRo:'OFF. REB', tRd:'DEF. REB', tAst:'ASSISTS', tStl:'STEALS',
     tTov:'TURNOVERS', tFd:'FOULS DRAWN', tBlk:'BLOCKS', tBka:'BLOCKS RECV.',
     hVal:'VAL', hPm:'+/−', h2:'2PT', h3:'3PT', hFt:'FT', hRo:'OR', hRd:'DR', hAst:'AST', hStl:'STL', hTov:'TOV', hFd:'FD', hBlk:'BLK', hBka:'BA',
-    sTeam:'Team totals', tRt:'TOT. REB', tFl:'FOULS',
+    sTeam:'Team totals', tRt:'TOT. REB', tFl:'FOULS', cPlayer:'PLAYER', tot:'TOT',
     sFlow:'Game flow', gfUs:'Us', gfMax:'Biggest Lead', gfTies:'Tied Score', gfChanges:'Lead Changes'
   }
 };
@@ -396,6 +409,29 @@ if(!liveId){
       statTiles(p);
   }
 
+  // ── Box score: stesso layout della pagina staff (tabella scorrevole, colonna giocatore fissa, ordinabile, a colori) ──
+  // Mostra solo le statistiche scelte all'avvio, nell'ordine di colonne della pagina staff.
+  const colr = v => v>0 ? 'var(--green)' : v<0 ? 'var(--red)' : 'var(--text2)';
+  const pctOr = (m, a) => a>0 ? Math.round(m*100/a) : -1;
+  const shotCell = (m, a) => m+'/'+a+'<br><span class="pct">'+(a>0?Math.round(m*100/a):0)+'%</span>';
+  const num = (v) => Number(v) || 0;
+  const simple = (s, h, k) => ({ s, h, sort: r => num(r[k]), cell: r => num(r[k]), tot: T => T[k] });
+  const BCOLS = [
+    { s:'min', h:'hMin', sort: r => num(r.min), cell: r => num(r.min)+"'", tot: T => T.min+"'" },
+    { s:'pts', h:'hPts', sort: r => num(r.pts), cell: r => '<strong>'+num(r.pts)+'</strong>', tot: T => '<strong>'+T.pts+'</strong>' },
+    { s:'shoot', h:'h2',  sort: r => pctOr(num(r.fg2m), num(r.fg2a)), cell: r => shotCell(num(r.fg2m), num(r.fg2a)), tot: T => shotCell(T.fg2m, T.fg2a) },
+    { s:'shoot', h:'h3',  sort: r => pctOr(num(r.fg3m), num(r.fg3a)), cell: r => shotCell(num(r.fg3m), num(r.fg3a)), tot: T => shotCell(T.fg3m, T.fg3a) },
+    { s:'shoot', h:'hFt', sort: r => pctOr(num(r.ftm), num(r.fta)),   cell: r => shotCell(num(r.ftm), num(r.fta)),   tot: T => shotCell(T.ftm, T.fta) },
+    simple('reb', 'hRo', 'ro'), simple('reb', 'hRd', 'rd'), simple('ast', 'hAst', 'ast'), simple('stl', 'hStl', 'stl'), simple('tov', 'hTov', 'tov'),
+    { s:'foul', h:'hFoul', sort: r => num(r.foul),
+      cell: r => '<span style="color:'+(num(r.foul)>=5?'var(--red)':'inherit')+'">'+num(r.foul)+(num(r.foul)>=5?' ⚠️':'')+'</span>', tot: T => T.foul },
+    simple('fd', 'hFd', 'fd'), simple('blk', 'hBlk', 'blk'), simple('bka', 'hBka', 'bka'),
+    { s:'val', h:'hVal', sort: r => num(r.val), cell: r => '<span style="font-weight:700;color:'+colr(num(r.val))+'">'+sg(num(r.val))+'</span>', tot: T => '<span style="font-weight:700;color:'+colr(T.val)+'">'+sg(T.val)+'</span>' },
+    { s:'pm', h:'hPm', sort: r => num(r.pm), cell: r => '<span style="font-weight:700;color:'+colr(num(r.pm))+'">'+sg(num(r.pm))+'</span>', tot: null }
+  ];
+  const BTOT = ['min','pts','fg2m','fg2a','fg3m','fg3a','ftm','fta','ro','rd','ast','stl','tov','foul','fd','blk','bka','val'];
+  let bSort = { c: 0, dir: 1 };   // 0 = numero maglia
+
   // ── Elenco giocatori + scheda dettaglio (stesse 4 statistiche della card live) ──
   function findPlayer(num, name){
     return curRoster.find(r => String(r.num)===String(num) && r.name===name) || null;
@@ -409,16 +445,21 @@ if(!liveId){
     if(sheetMode==='list'){
       title.textContent = t('sheetAll');
       if(!curRoster.length){ body.innerHTML = '<div class="empty">'+esc(t('noPlayers'))+'</div>'; return; }
-      const rows = curRoster.slice().sort((a,b)=>(parseInt(a.num,10)||0)-(parseInt(b.num,10)||0));
-      const heads = activeItems({});
-      const wcls = it => it[4] !== undefined ? ' w' : '';
-      body.innerHTML = '<div class="rscroll"><div class="rtab">'+
-        '<div class="rhead"><span class="nm"></span>'+heads.map(it => '<span class="c'+wcls(it)+'">'+esc(t(it[3]))+'</span>').join('')+'</div>'+
-        rows.map(r =>
-        '<div class="rrow" data-num="'+esc(r.num)+'" data-name="'+esc(r.name)+'">'+
-          '<span class="nm"><span class="n">#'+esc(r.num)+'</span>'+esc(r.name)+'</span>'+
-          activeItems(r).map(it => '<span class="c'+wcls(it)+'">'+esc(it[1])+'</span>').join('')+
-        '</div>').join('')+'</div></div>';
+      const cols = BCOLS.filter(c => selStats.has(c.s));
+      const rows = curRoster.slice();
+      const sf = bSort.c === 0 ? (x => parseInt(x.num,10)||0) : ((cols[bSort.c-1] || cols[0] || {sort:x=>0}).sort || (x => 0));
+      rows.sort((x, y) => bSort.dir * (sf(x) - sf(y)));
+      const T = {}; BTOT.forEach(k => { T[k] = 0; });
+      const isOn = r => curOnCourt.some(o => String(o.num)===String(r.num) && o.name===r.name);
+      const head = '<thead><tr><th class="sortable'+(bSort.c===0?' sa':'')+'" data-c="0" style="min-width:110px">'+esc(t('cPlayer'))+(bSort.c===0?(bSort.dir<0?' ▼':' ▲'):'')+'</th>'+
+        cols.map((c, i) => '<th class="sortable'+(bSort.c===i+1?' sa':'')+'" data-c="'+(i+1)+'">'+esc(t(c.h))+(bSort.c===i+1?(bSort.dir<0?' ▼':' ▲'):'')+'</th>').join('')+'</tr></thead>';
+      const bodyRows = rows.map(r => {
+        BTOT.forEach(k => { T[k] += Number(r[k]) || 0; });
+        return '<tr class="click" data-num="'+esc(r.num)+'" data-name="'+esc(r.name)+'"><td>'+(isOn(r)?'<span class="dot"></span>':'')+'<span class="n">#'+esc(r.num)+'</span> '+esc(r.name)+'</td>'+
+          cols.map(c => '<td>'+c.cell(r)+'</td>').join('')+'</tr>';
+      }).join('');
+      const tot = '<tr class="tot"><td>'+esc(t('tot'))+'</td>'+cols.map(c => '<td>'+(c.tot ? c.tot(T) : '')+'</td>').join('')+'</tr>';
+      body.innerHTML = '<div class="scrollx"><table class="t" id="lt">'+head+'<tbody>'+bodyRows+tot+'</tbody></table></div>';
     } else {
       const p = findPlayer(sheetPlayer.num, sheetPlayer.name);
       title.textContent = t('sheetPlayer');
@@ -444,7 +485,13 @@ if(!liveId){
     openPlayer(el.dataset.num, el.dataset.name, false);
   });
   document.getElementById('sheetBody').addEventListener('click', e => {
-    const el = e.target.closest('.rrow'); if(!el) return;
+    const th = e.target.closest('th.sortable');
+    if(th){
+      const c = parseInt(th.dataset.c, 10);
+      if(c === bSort.c) bSort.dir = -bSort.dir; else { bSort.c = c; bSort.dir = c === 0 ? 1 : -1; }
+      renderSheet(); return;
+    }
+    const el = e.target.closest('tr.click'); if(!el) return;
     openPlayer(el.dataset.num, el.dataset.name, true);
   });
 
